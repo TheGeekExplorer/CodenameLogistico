@@ -23,11 +23,11 @@ VALUES
 "TESTING",
 "test@test.com",
 "01933371000",
-"Equity House",
-"Irthlingborough Road",
-"Wellingborough",
-"Northamptonshire",
-"NN8 1LT",
+"Test Building",
+"Test Road",
+"Test Town",
+"Test County",
+"ZZ99 2ZZ",
 1,
 1
 )
