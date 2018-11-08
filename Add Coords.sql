@@ -4,6 +4,6 @@ INSERT INTO `dc_datawarehouse`.`dc_coords`
 `coords_longitude`)
 VALUES
 (4,
-53.234889,
--1.906931
+53.651612,
+-1.984213
 );
