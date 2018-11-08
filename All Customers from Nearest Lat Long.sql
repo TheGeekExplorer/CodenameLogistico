@@ -1,5 +1,5 @@
-SET @latitude  = 52.310484;
-SET @longitude = -0.681849;
+SET @latitude  = 53.898745;
+SET @longitude = -1.894612;
 
 SELECT
     dc_coords.coords_latitude,
