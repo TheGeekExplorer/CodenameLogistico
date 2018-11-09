@@ -1,9 +1,10 @@
-SET @latitude  = 52.310484;
-SET @longitude = -0.681849;
-SET @vehicle_capacity = 3;
-SET @vehicle_chilled = 0;
+SET @latitude           = 52.310484;
+SET @longitude          = -0.681849;
+SET @vehicle_capacity   = 3;
+SET @vehicle_chilled    = 0;
 SET @vehicle_perishable = 0;
-SET @vehicle_fragile = 0;
+SET @vehicle_fragile    = 0;
+SET @distance           = 50;
 
 SELECT
     # CUSTOMER DETAILS
@@ -123,7 +124,20 @@ INNER JOIN
     
     
 WHERE
-    dc_drops.pallets_count <= @vehicle_capacity
+    (6371 * acos(
+        cos(
+            radians(@latitude)
+        ) * cos(
+            radians(dc_drops.pickup_latitude)
+        ) * cos(
+            radians(dc_drops.pickup_longitude) - radians(@longitude)
+        ) + sin(
+            radians(@latitude)
+        ) * sin(
+            radians(dc_drops.pickup_latitude)
+        )
+    )) <= @distance
+    AND dc_drops.pallets_count <= @vehicle_capacity
     AND dc_drops.chilled    = @vehicle_chilled
     AND dc_drops.perishable = @vehicle_perishable
     AND dc_drops.fragile    = @vehicle_fragile
@@ -177,7 +191,7 @@ GROUP BY
     dc_drops.chilled
 
 HAVING
-    distance_calculation_driver_to_pickup <= 50
+    distance_calculation_driver_to_pickup <= @distance
 
 ORDER BY
     distance_calculation_driver_to_pickup ASC
