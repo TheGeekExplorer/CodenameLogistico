@@ -1,14 +1,18 @@
-SET @latitude           = 52.310484;
-SET @longitude          = -0.681849;
-SET @vehicle_capacity   = 3;
-SET @vehicle_chilled    = 0;
-SET @vehicle_perishable = 0;
-SET @vehicle_fragile    = 0;
+SET @vehicleid          = 1;
 SET @distance           = 50;
 
 SELECT
+    # VEHICLE DETAILS
+    dc_vehicles.location_latitude  as vehicle_latitude,
+    dc_vehicles.location_longitude as vehicle_longitude,
+    dc_vehicles.pallets_capacity   as vehicle_capacity,
+    dc_vehicles.pallets_usage      as vehicle_usage,
+    SUM(dc_vehicles.pallets_capacity - dc_vehicles.pallets_usage) as vehicle_capacity_current,
+    
+    
     # CUSTOMER DETAILS
-    dc_customers.customerid,
+    dc_drops.pallets_count        as drop_pallets_count,
+    dc_customers.customerid       as customer_customerid,
     dc_customers.business_name    as customer_business_name,
     dc_customers.address_house_no as business_address_house_no,
     dc_customers.address_street   as business_address_street,
@@ -27,13 +31,13 @@ SELECT
     ROUND((
         6371 * acos(
             cos(
-                radians(@latitude)
+                radians(dc_vehicles.location_latitude)
             ) * cos(
                 radians(dc_drops.pickup_latitude)
             ) * cos(
-                radians(dc_drops.pickup_longitude) - radians(@longitude)
+                radians(dc_drops.pickup_longitude) - radians(dc_vehicles.location_longitude)
             ) + sin(
-                radians(@latitude)
+                radians(dc_vehicles.location_latitude)
             ) * sin(
                 radians(dc_drops.pickup_latitude)
             )
@@ -45,13 +49,13 @@ SELECT
     ROUND((
         6371 * acos(
             cos(
-                radians(@latitude)
+                radians(dc_vehicles.location_latitude)
             ) * cos(
                 radians(dc_drops.dropoff_latitude)
             ) * cos(
-                radians(dc_drops.dropoff_longitude) - radians(@longitude)
+                radians(dc_drops.dropoff_longitude) - radians(dc_vehicles.location_longitude)
             ) + sin(
-                radians(@latitude)
+                radians(dc_vehicles.location_latitude)
             ) * sin(
                 radians(dc_drops.dropoff_latitude)
             )
@@ -123,28 +127,40 @@ INNER JOIN
     ON dc_drops.customerid = dc_customers.customerid
     
     
+INNER JOIN
+    dc_vehicles
+    USE INDEX (idx_vehicleid)
+    ON dc_vehicles.vehicleid = @vehicleid
+    
+    
 WHERE
+    # Only show drops that are within a certain distance of the 
+    # vehicles GPS / Address location
     (6371 * acos(
         cos(
-            radians(@latitude)
+            radians(dc_vehicles.location_latitude)
         ) * cos(
             radians(dc_drops.pickup_latitude)
         ) * cos(
-            radians(dc_drops.pickup_longitude) - radians(@longitude)
+            radians(dc_drops.pickup_longitude) - radians(dc_vehicles.location_longitude)
         ) + sin(
-            radians(@latitude)
+            radians(dc_vehicles.location_latitude)
         ) * sin(
             radians(dc_drops.pickup_latitude)
         )
     )) <= @distance
-    AND dc_drops.pallets_count <= @vehicle_capacity
-    AND dc_drops.chilled    = @vehicle_chilled
-    AND dc_drops.perishable = @vehicle_perishable
-    AND dc_drops.fragile    = @vehicle_fragile
-    AND dc_customers.status = 1
+    
+    # Calculate how many spare pallet slots in vehicle, and 
+    # if this drop is less or equal to spare space
+    AND (dc_vehicles.pallets_capacity - dc_vehicles.pallets_usage) <= dc_drops.pallets_count
+    
+    # Check that the customers account has not been 
+    # banned/deleted/disabled
+    AND dc_customers.status    = 1
     
     
 GROUP BY
+    dc_drops.pallets_count,
     dc_customers.customerid,
     dc_customers.business_name,
     dc_customers.address_house_no,
