@@ -2,15 +2,13 @@ SET @vehicleid          = 1;
 SET @distance           = 50;
 
 SELECT
-    # IDs for Vehicle, Drops, and Customers
+    # IDs FOR VEHICLE, DROPS, AND CUSTOMERS
     dc_drops.dropid,
     dc_customers.customerid       as customer_customerid,
     dc_vehicles.vehicleid,
     
     
-    # VEHICLE DETAILS
-    dc_vehicles.location_latitude  as vehicle_latitude,
-    dc_vehicles.location_longitude as vehicle_longitude,
+    # VEHICLE CAPACITY/USAGE
     dc_vehicles.pallets_capacity   as vehicle_capacity,
     dc_vehicles.pallets_usage      as vehicle_usage,
     (dc_vehicles.pallets_capacity - dc_vehicles.pallets_usage) as vehicle_capacity_current,
@@ -20,7 +18,9 @@ SELECT
     dc_drops.pallets_count        as drop_pallets_count,
     
     
-    # DROP PICKUP/DROPOFF COORDS
+    # COORDS
+    dc_vehicles.location_latitude  as vehicle_latitude,
+    dc_vehicles.location_longitude as vehicle_longitude,
     dc_drops.pickup_latitude,
     dc_drops.pickup_longitude,
     dc_drops.dropoff_latitude,
@@ -147,8 +147,9 @@ INNER JOIN
     
     
 WHERE
-    # Only show drops that are within a certain distance of the 
-    # vehicles GPS / Address location
+
+    # ONLY SHOW DROPS THAT ARE WITHIN A CERTAIN DISTANCE OF THE
+    # VEHICLES GPS LOCATION
     (6371 * acos(
         cos(
             radians(dc_vehicles.location_latitude)
@@ -164,13 +165,24 @@ WHERE
     )) <= @distance
     
     
-    # Calculate how many spare pallet slots in vehicle, and 
-    # if this drop is less or equal to spare space
+    # ONLY RETURN DROPS THAT THE PICKUP WINDOW CLOSE IS IN
+    # THE FUTURE.  WE DO NOT WANT TO OFFER DROPS THAT ARE
+    # IN THE PAST.
+    AND (
+        dc_drops.pickup_date_to > CURDATE()
+        OR (
+            dc_drops.pickup_date_to = CURDATE()
+            AND dc_drops.pickup_time_to > HOUR(NOW())
+        )
+    )
+    
+    # CALCULATE HOW MANY SPARE PALLET SLOTS IN VEHICLE AND
+    # IF THIS DROP IS LESS OR EQUAL TO SPARE SLOTS
     AND (dc_vehicles.pallets_capacity - dc_vehicles.pallets_usage) <= dc_drops.pallets_count
     
     
-    # Check that the customers account has not been 
-    # banned/deleted/disabled
+    # CHECK THAT THE CUSTOMERS ACCOUNT HAS NOT BEEN
+    # BANNED/DELETED/DISABLED
     AND dc_customers.status    = 1
     
     
