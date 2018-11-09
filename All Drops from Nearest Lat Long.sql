@@ -5,7 +5,9 @@ SET @vehicle_chilled = 0;
 SET @vehicle_perishable = 0;
 SET @vehicle_fragile = 0;
 
+
 SELECT
+    
     # CUSTOMER DETAILS
     dc_customers.customerid,
     dc_customers.business_name    as customer_business_name,
@@ -18,7 +20,11 @@ SELECT
     # DROP PICKUP/DROPOFF COORDS
     dc_drops.pickup_latitude,
     dc_drops.pickup_longitude,
+    dc_drops.dropoff_latitude,
+    dc_drops.dropoff_longitude,
     
+    
+    # DISTANCE CALCULATIONS - DRIVER to PICKUP
     ROUND((
         6371 * acos(
             cos(
@@ -33,11 +39,10 @@ SELECT
                 radians(dc_drops.pickup_latitude)
             )
         )
-    ), 2) AS pickup_distance_in_kilometers,
+    ), 2) AS distance_calculation_driver_to_pickup,
     
-    dc_drops.dropoff_latitude,
-    dc_drops.dropoff_longitude,
     
+    # DISTANCE CALCULATIONS - DRIVER to DROPOFF
     ROUND((
         6371 * acos(
             cos(
@@ -52,7 +57,25 @@ SELECT
                 radians(dc_drops.dropoff_latitude)
             )
         )
-    ), 2) AS dropoff_distance_in_kilometers,
+    ), 2) AS distance_calculation_driver_to_dropoff,
+    
+    
+    # DISTANCE CALCULATIONS - PICKUP to DROPOFF
+    ROUND((
+        6371 * acos(
+            cos(
+                radians(dc_drops.pickup_latitude)
+            ) * cos(
+                radians(dc_drops.dropoff_latitude)
+            ) * cos(
+                radians(dc_drops.dropoff_longitude) - radians(dc_drops.pickup_longitude)
+            ) + sin(
+                radians(dc_drops.pickup_latitude)
+            ) * sin(
+                radians(dc_drops.dropoff_latitude)
+            )
+        )
+    ), 2) AS distance_calculation_pickup_to_dropoff,
     
     
     # DROP PICKUP ADDRESS
@@ -156,10 +179,10 @@ GROUP BY
     dc_drops.chilled
 
 HAVING
-    pickup_distance_in_kilometers <= 50
+    distance_calculation_driver_to_pickup <= 50
 
 ORDER BY
-    pickup_distance_in_kilometers ASC
+    distance_calculation_driver_to_pickup ASC
 
 LIMIT
     0, 150
