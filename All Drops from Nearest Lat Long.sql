@@ -5,9 +5,7 @@ SET @vehicle_chilled = 0;
 SET @vehicle_perishable = 0;
 SET @vehicle_fragile = 0;
 
-
 SELECT
-    
     # CUSTOMER DETAILS
     dc_customers.customerid,
     dc_customers.business_name    as customer_business_name,
